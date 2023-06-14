@@ -20,7 +20,7 @@ class TensegrityEnv(MujocoEnv, utils.EzPickle):
             self.debug_pub = rospy.Publisher("tensegrity_env/debug", Float32MultiArray, queue_size=10)
 
         self.rospack = RosPack()
-        model_path = self.rospack.get_path("tensegrity_sim") + "/model/scene.xml"
+        model_path =  "/home/leus/mujoco_ws/mujoco_ws/src/tensegrity_sim/model/scene_24act.xml"
         # 5 : frame skip
         MujocoEnv.__init__(self, model_path, 5)
 
@@ -45,8 +45,8 @@ class TensegrityEnv(MujocoEnv, utils.EzPickle):
         self.accelerometer_id = self.model.sensor_name2id("accelerometer")
 
         # control range
-        self.ctrl_max = [0]*12
-        self.ctrl_min = [-0.5]*12
+        self.ctrl_max = [0]*24
+        self.ctrl_min = [-0.05]*24
 
         self.n_prev = 6
         self.max_episode = 1000
@@ -63,16 +63,26 @@ class TensegrityEnv(MujocoEnv, utils.EzPickle):
             0.01, 0.01, 0.01, 0.03, 0.03, 0.01,
             0.01, 0.01, 0.01, 0.03, 0.03, 0.01,
             ], dtype=np.float32) # velocity of quaternion (3) + joint velocities (3) = (6)
-        self.force_rand = np.array([0.003]*36, dtype=np.float32)
-        self.const_force_rand = np.array([0.003]*36, dtype=np.float32)
+        self.force_rand = np.array([
+            0.03, 0.03, 0.03, 0.03, 0.03, 0.03,
+            0.03, 0.03, 0.03, 0.03, 0.03, 0.03,
+            0.03, 0.03, 0.03, 0.03, 0.03, 0.03,
+            0.03, 0.03, 0.03, 0.03, 0.03, 0.03,
+            0.03, 0.03, 0.03, 0.03, 0.03, 0.03,
+            0.03, 0.03, 0.03, 0.03, 0.03, 0.03,
+            ], dtype=np.float32)
+        self.const_force_rand = np.array([
+            0.03, 0.03, 0.03, 0.03, 0.03, 0.03,
+            0.03, 0.03, 0.03, 0.03, 0.03, 0.03,
+            0.03, 0.03, 0.03, 0.03, 0.03, 0.03,
+            0.03, 0.03, 0.03, 0.03, 0.03, 0.03,
+            0.03, 0.03, 0.03, 0.03, 0.03, 0.03,
+            0.03, 0.03, 0.03, 0.03, 0.03, 0.03,
+            ], dtype=np.float32)
         #self.torque_rand = np.array([0.3, 0.3, 0.3], dtype=np.float32)
         #self.const_torque_rand = np.array([0.3, 0.3, 0.3], dtype=np.float32)
-        self.action_rand = np.array([0.05, 0.05, 0.05, 0.05,
-            0.05, 0.05, 0.05, 0.05,
-            0.05, 0.05, 0.05, 0.05], dtype=np.float32)
-        self.const_action_rand = np.array([0.05, 0.05, 0.05, 0.05,
-            0.05, 0.05, 0.05, 0.05,
-            0.05, 0.05, 0.05, 0.05], dtype=np.float32)
+        self.action_rand = np.array([0.005]*24, dtype=np.float32)
+        self.const_action_rand = np.array([0.005]*24, dtype=np.float32)
         self.body_xpos_rand = np.array([0.01]*18)
         self.const_body_xpos_rand = np.array([0.01]*18)
 
@@ -85,7 +95,7 @@ class TensegrityEnv(MujocoEnv, utils.EzPickle):
         # variable for rl
         self.const_ext_qpos = np.zeros(42)
         self.const_ext_force = np.zeros(36)
-        self.const_ext_action = np.zeros(12)
+        self.const_ext_action = np.zeros(24)
         self.current_qpos = None
         self.current_qvel = None # not used
         #self.current_bvel = None
@@ -98,7 +108,7 @@ class TensegrityEnv(MujocoEnv, utils.EzPickle):
         self.episode_cnt = 0
         self.step_cnt = 0
 
-    def step(self, action): # action : tension of each tendon, 12dof
+    def step(self, action): # action : tension of each tendon, 24dof
         if not self.is_params_set:
             self.set_param()
             self.is_params_set = True
@@ -133,8 +143,8 @@ class TensegrityEnv(MujocoEnv, utils.EzPickle):
             self.prev_body_xpos = [copy.deepcopy(self.current_body_xpos) for i in range(self.n_prev)]
 
         # add random noise
-        action_rate = 1.0 + self.action_rand*step_rate*np.random.randn(12) + self.const_ext_action
-        action_converted = [(cmin+(rate*a+1.0)*(cmax-cmin)/2.0) for a, cmin, cmax, rate in zip(action, self.ctrl_min, self.ctrl_max, action_rate)] # tension force (12)
+        action_rate = 1.0 + self.action_rand*step_rate*np.random.randn(24) + self.const_ext_action
+        action_converted = [(cmin+(rate*a+1.0)*(cmax-cmin)/2.0) for a, cmin, cmax, rate in zip(action, self.ctrl_min, self.ctrl_max, action_rate)] # tension force (24)
                 
         self.sim.data.qfrc_applied[:] = self.const_ext_force + self.force_rand*step_rate*np.random.randn(36) # body linear force [N] + torque = 36 dof
 
@@ -251,7 +261,7 @@ class TensegrityEnv(MujocoEnv, utils.EzPickle):
             self.prev_qvel = None
             self.const_ext_qpos = self.const_qpos_rand*step_rate*np.random.randn(42)
             self.const_ext_force = self.const_force_rand*step_rate*np.random.randn(36)
-            self.const_ext_action = self.const_action_rand*step_rate*np.random.randn(12)
+            self.const_ext_action = self.const_action_rand*step_rate*np.random.randn(24)
         return (
             obs,
             reward,
@@ -277,9 +287,8 @@ class TensegrityEnv(MujocoEnv, utils.EzPickle):
         )
 
     def _set_action_space(self):
-        low = np.asarray([-0.5]*12, dtype=np.float32)
-        high = np.asarray([0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0], dtype=np.float32)
+        low = np.asarray([-0.05]*24, dtype=np.float32)
+        high = np.asarray([0.0]*24, dtype=np.float32)
         self.action_space = spaces.Box(low=low, high=high, dtype=np.float32)
         return self.action_space
 
@@ -308,7 +317,7 @@ class TensegrityEnv(MujocoEnv, utils.EzPickle):
             self.current_qpos = self.sim.data.qpos.flat[:]
             self.current_qvel = self.sim.data.qvel.flat[:]
             self.current_body_xpos = self.sim.data.body_xpos.flat[3:]
-            self.prev_action = [np.zeros(12) for i in range(self.n_prev)]
+            self.prev_action = [np.zeros(24) for i in range(self.n_prev)]
             self.prev_qpos = [self.current_qpos + self.qpos_rand*step_rate*np.random.randn(42) for i in range(self.n_prev)]
             self.prev_qvel = [self.current_qvel + self.qvel_rand*step_rate*np.abs(self.sim.data.qvel)*np.random.randn(36) for i in range(self.n_prev)]
             self.prev_body_xpos = [self.current_body_xpos + self.body_xpos_rand*step_rate*np.abs(self.sim.data.body_xpos.flat[3:])*np.random.randn(18) for i in range(self.n_prev)]

@@ -167,29 +167,29 @@
   <actuator>
     <!-- tention-controlled actuators-->
     <position name="link1t_3b" tendon="link1t_3b" kp="10" class="tendon_actuator"/>
-      <!--    <position name="link1t_4b" tendon="link1t_4b" kp="10" class="tendon_actuator"/>-->
+    <position name="link1t_4b" tendon="link1t_4b" kp="10" class="tendon_actuator"/>
     <position name="link1b_3b" tendon="link1b_3b" kp="10" class="tendon_actuator"/>
-      <!--    <position name="link1b_4b" tendon="link1b_4b" kp="10" class="tendon_actuator"/>-->
+    <position name="link1b_4b" tendon="link1b_4b" kp="10" class="tendon_actuator"/>
     <position name="link1b_6t" tendon="link1b_6t" kp="10" class="tendon_actuator"/>
-      <!--    <position name="link1b_6b" tendon="link1b_6b" kp="10" class="tendon_actuator"/>-->
+    <position name="link1b_6b" tendon="link1b_6b" kp="10" class="tendon_actuator"/>
     <position name="link1t_5t" tendon="link1t_5t" kp="10" class="tendon_actuator"/>
-      <!--    <position name="link1t_5b" tendon="link1t_5b" kp="10" class="tendon_actuator"/>-->
+    <position name="link1t_5b" tendon="link1t_5b" kp="10" class="tendon_actuator"/>
     <position name="link2t_3t" tendon="link2t_3t" kp="10" class="tendon_actuator"/>
-      <!--    <position name="link2t_4t" tendon="link2t_4t" kp="10" class="tendon_actuator"/>-->
+    <position name="link2t_4t" tendon="link2t_4t" kp="10" class="tendon_actuator"/>
     <position name="link2b_3t" tendon="link2b_3t" kp="10" class="tendon_actuator"/>
-      <!--    <position name="link2b_4t" tendon="link2b_4t" kp="10" class="tendon_actuator"/>-->
+    <position name="link2b_4t" tendon="link2b_4t" kp="10" class="tendon_actuator"/>
     <position name="link2b_6t" tendon="link2b_6t" kp="10" class="tendon_actuator"/>
-      <!--    <position name="link2b_6b" tendon="link2b_6b" kp="10" class="tendon_actuator"/>-->
+    <position name="link2b_6b" tendon="link2b_6b" kp="10" class="tendon_actuator"/>
     <position name="link2t_5t" tendon="link2t_5t" kp="10" class="tendon_actuator"/>
-      <!--    <position name="link2t_5b" tendon="link2t_5b" kp="10" class="tendon_actuator"/>-->
+    <position name="link2t_5b" tendon="link2t_5b" kp="10" class="tendon_actuator"/>
     <position name="link3t_5t" tendon="link3t_5t" kp="10" class="tendon_actuator"/>
-      <!--    <position name="link3b_5t" tendon="link3b_5t" kp="10" class="tendon_actuator"/>-->
+    <position name="link3b_5t" tendon="link3b_5t" kp="10" class="tendon_actuator"/>
     <position name="link3t_6t" tendon="link3t_6t" kp="10" class="tendon_actuator"/>
-      <!--    <position name="link3b_6t" tendon="link3b_6t" kp="10" class="tendon_actuator"/>-->
+    <position name="link3b_6t" tendon="link3b_6t" kp="10" class="tendon_actuator"/>
     <position name="link4t_5b" tendon="link4t_5b" kp="10" class="tendon_actuator"/>
-      <!--    <position name="link4b_5b" tendon="link4b_5b" kp="10" class="tendon_actuator"/>-->
+    <position name="link4b_5b" tendon="link4b_5b" kp="10" class="tendon_actuator"/>
     <position name="link4b_6b" tendon="link4b_6b" kp="10" class="tendon_actuator"/>
-      <!--    <position name="link4t_6b" tendon="link4t_5b" kp="10" class="tendon_actuator"/>-->
+    <position name="link4t_6b" tendon="link4t_6b" kp="10" class="tendon_actuator"/>
   </actuator>
 
   <sensor>

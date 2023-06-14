@@ -148,15 +148,20 @@ class TensegrityEnv(MujocoEnv, utils.EzPickle):
             # quat = self.sim.data.qpos[[4, 5, 6, 3]] # [x, y, z, w]
             # pole_quat = self.sim.data.body_xquat[self.model.nbody-2][[1, 2, 3, 0]]
 
+        self.current_qpos = self.sim.data.qpos + self.qpos_rand*step_rate*np.random.randn(42) + self.const_ext_qpos
+        self.current_qvel = self.sim.data.qvel + self.qvel_rand*step_rate*np.random.randn(36)
+        self.current_body_xpos = self.sim.data.body_xpos.flat[3:] + self.body_xpos_rand*step_rate*np.random.randn(18)
+
         # reward definition
-        #forward_reward = 0.0
+        forward_reward = 0.0
         ctrl_reward = 0.0
         rotate_reward = 0.0
         #rotate_speed_reward = 0.0
-        yaw_reward = 0.0
+        #yaw_reward = 0.0
         survive_reward = 0.0
-        """
-        forward_reward = 1.0*(
+        
+        # diff of body_xpos
+        forward_value = 1.0*(
                     (self.current_body_xpos[0]-self.prev_body_xpos[-1][0])
                     +(self.current_body_xpos[3]-self.prev_body_xpos[-1][3])
                     +(self.current_body_xpos[6]-self.prev_body_xpos[-1][6])
@@ -164,12 +169,20 @@ class TensegrityEnv(MujocoEnv, utils.EzPickle):
                     +(self.current_body_xpos[12]-self.prev_body_xpos[-1][12])
                     +(self.current_body_xpos[15]-self.prev_body_xpos[-1][15])
                     )
+        
         """
+        forward_reward
+        """
+        if forward_value > 0:
+            forward_reward = 1.0*forward_value**2
+        else:
+            forward_reward = -1.0*step_rate*forward_value
+
         ctrl_reward = -1.0*step_rate*np.linalg.norm(action)
         #print("action:{}".format(np.linalg.norm(action)))
         #print("xpos:{}".format(self.current_body_xpos[0]))
         #print("gyro:{}".format(self.sim.data.sensordata[1:4]))
-        #print("qvel:{}".format(self.sim.data.qvel[0:6]))
+        #print("qvel:{}".format(self.sim.data.qvel))
         #print("qvel:{}".format(np.square(self.sim.data.qvel[3:5]).sum()))
         """
         rotate_reward = 0.1*step_rate*(
@@ -190,11 +203,12 @@ class TensegrityEnv(MujocoEnv, utils.EzPickle):
                 np.square(self.sim.data.qvel[27:29]).sum()+
                 np.square(self.sim.data.qvel[33:35]).sum())
         if rotate_value < 600:
-            rotate_reward = 1.0*step_rate*rotate_value
+            rotate_reward = 0.0001*rotate_value
         else:
-            rotate_reward = -0.1*step_rate*rotate_value
+            rotate_reward = -0.0001*step_rate*rotate_value
 
         # size of yaw
+        """
         yaw_reward = -0.1*step_rate*(
                 np.square(self.sim.data.qvel[5])+
                 np.square(self.sim.data.qvel[11])+
@@ -203,10 +217,12 @@ class TensegrityEnv(MujocoEnv, utils.EzPickle):
                 np.square(self.sim.data.qvel[29])+
                 np.square(self.sim.data.qvel[35])
                 )
+        """
         print("rotate_value:{}".format(rotate_reward))
-        print("yaw_value:{}".format(yaw_reward))
+        print("forward_value:{}".format(forward_reward))
+        print("ctrl_reward:{}".format(ctrl_reward))
         survive_reward = 0.1
-        reward = ctrl_reward + rotate_reward + yaw_reward + survive_reward
+        reward = ctrl_reward + forward_reward + rotate_reward + survive_reward
 #        print("ctrl:{}".format(ctrl_reward))
 #        print("rotate:{}".format(rotate_reward))
 
@@ -225,10 +241,8 @@ class TensegrityEnv(MujocoEnv, utils.EzPickle):
             done = False
         else:
             done = not notdone
-            
-        self.current_qpos = self.sim.data.qpos + self.qpos_rand*step_rate*np.random.randn(42) + self.const_ext_qpos
-        self.current_qvel = self.sim.data.qvel + self.qvel_rand*step_rate*np.random.randn(36)
-        self.prev_qpos.append(copy.deepcopy(self.current_qpos))
+        
+        # update prev data
         self.prev_qvel.append(copy.deepcopy(self.current_qvel))
         #self.prev_body_xpos = self.prev_body_xpos.tolist()
         self.prev_body_xpos.append(copy.deepcopy(self.current_body_xpos))
