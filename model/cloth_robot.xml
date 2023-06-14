@@ -1,0 +1,60 @@
+<?xml version="1.0" ?>
+<mujoco model="cloth_robot">
+  <option timestep="0.002" solver="CG" tolerance="1e-6"/>
+  <size nconmax="300" njmax="1000" nstack="1000000"/>
+  <statistic extent="2" meansize=".05"/>
+
+  <visual>
+    <rgba haze="0.15 0.25 0.35 1"/>
+    <quality shadowsize="2048"/>
+    <map stiffness="700" shadowscale="0.5" fogstart="10" fogend="15" zfar="40" haze="0.3"/>
+  </visual>
+
+  <asset>
+    <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512" height="512"/>
+    <texture name="texplane" type="2d" builtin="checker" rgb1=".2 .3 .4" rgb2=".1 0.15 0.2"
+      width="512" height="512" mark="cross" markrgb=".8 .8 .8"/>
+    <material name="matplane" reflectance="0.3" texture="texplane" texrepeat="1 1" texuniform="true"/>
+  </asset>
+
+  <worldbody>
+    <light directional="true" diffuse=".4 .4 .4" specular="0.1 0.1 0.1" pos="0 0 5.0" dir="0 0 -1" castshadow="false"/>
+    <light directional="true" diffuse=".6 .6 .6" specular="0.2 0.2 0.2" pos="0 0 4" dir="0 0 -1"/>
+
+    <geom name="ground" type="plane" size="0 0 1" pos="0 0 0" quat="1 0 0 0" material="matplane" condim="1"/>
+    <camera name="camera" fovy="60" pos="0.0 0 1.6" euler="0 40 -90"/>
+
+    <body name="uarm" pos="0 0 1.0">
+      <geom name="uarm" type="capsule" size="0.045" fromto="0 0 0  0 0 -0.3" rgba="0 1 0 1"/>
+      <joint name="uarm-joint" axis="0 1 0" limited="true" range="-60 30" damping="10"/>
+      <joint name="uarm-joint2" axis="1 0 0" limited="true" range="-60 30" damping="10"/>
+      <joint name="uarm-joint3" axis="0 0 1" limited="true" range="-60 30" damping="10"/>
+
+
+      <body name="larm" pos="0 0 -0.3">
+        <geom name="larm" type="capsule" size="0.045" fromto="0 0 0  0 0 -0.25" rgba="0 1 0 1"/>
+        <joint name="larm-joint" axis="0 1 0" limited="true" range="-90 0" damping="10"/>
+
+        <body name="cloth" pos="0.6 0.1 -0.25">
+          <inertial mass="0.05" pos="0 0 0"/> <!-- 0.05, 0.1, 0.15 -->
+          <composite type="grid" count="6 3 1" spacing="0.2" offset="0 0 0">
+            <skin rgba="1 0 0 1" texcoord="true" inflate="0.005" subgrid="2"/>
+            <joint kind="main" damping="0.03"/> <!-- 0.03, 0.05, 0.07 -->
+            <geom size=".01"/>
+            <pin coord="0 0"/>
+            <pin coord="0 1"/>
+            <pin coord="0 2"/>
+          </composite>
+        </body>
+
+      </body>
+
+    </body>
+
+  </worldbody>
+  <actuator>
+    <position name="uarm-joint" joint="uarm-joint" kp="100" ctrllimited="true" ctrlrange="-1.050 0.525"/>
+    <position name="larm-joint" joint="larm-joint" kp="100" ctrllimited="true" ctrlrange="-1.575 0"/>
+  </actuator>
+
+</mujoco>

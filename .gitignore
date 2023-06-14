@@ -1,0 +1,4 @@
+/saved/
+*.swp
+/__pycache__/
+MUJOCO_LOG.TXT
