@@ -15,7 +15,7 @@ from stable_baselines3.common.utils import set_random_seed, get_device, get_late
 from stable_baselines3.common.callbacks import CheckpointCallback
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
-from tensegrity_sim_UpdReward import TensegrityEnv
+from tensegrity_sim_vel import TensegrityEnv
 
 ## variable from command line
 def parser():
@@ -58,7 +58,6 @@ def main():
     root_dir = os.path.dirname(os.path.abspath(__file__))
     model = PPO("MlpPolicy",
             env,
-            learning_rate = 0.00001,
             policy_kwargs = dict(
                 activation_fn=torch.nn.Tanh,
                 net_arch=dict(pi=[256, 128], vf=[256, 128]),

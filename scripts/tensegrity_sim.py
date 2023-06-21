@@ -203,8 +203,9 @@ class TensegrityEnv(MujocoEnv, utils.EzPickle):
                 np.square(self.sim.data.qvel[29])+
                 np.square(self.sim.data.qvel[35])
                 )
-        print("rotate_value:{}".format(rotate_reward))
-        print("yaw_value:{}".format(yaw_reward))
+#        print("rotate_value:{}".format(rotate_reward))
+#        print("yaw_value:{}".format(yaw_reward))
+        print("xpos:{}".format(self.sim.data.get_body_xpos("link1")))
         survive_reward = 0.1
         reward = ctrl_reward + rotate_reward + yaw_reward + survive_reward
 #        print("ctrl:{}".format(ctrl_reward))

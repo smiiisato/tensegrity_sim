@@ -11,7 +11,6 @@ class TensegrityEnv(MujocoEnv, utils.EzPickle):
         self.test = test
         self.ros = ros
         self.max_step = max_step
-        self.default_step_rate = 0.5
 
         if self.test and self.ros:
             import rospy
@@ -21,7 +20,7 @@ class TensegrityEnv(MujocoEnv, utils.EzPickle):
             self.debug_pub = rospy.Publisher("tensegrity_env/debug", Float32MultiArray, queue_size=10)
 
         self.rospack = RosPack()
-        model_path = self.rospack.get_path("tensegrity_sim") + "/model/scene.xml"
+        model_path = self.rospack.get_path("tensegrity_sim") + "/model/scene_vel.xml"
         # 5 : frame skip
         MujocoEnv.__init__(self, model_path, 5)
 
@@ -105,8 +104,7 @@ class TensegrityEnv(MujocoEnv, utils.EzPickle):
             self.is_params_set = True
 
         if self.max_step:
-            #step_rate = float(self.step_cnt)/self.max_step
-            step_rate = self.default_step_rate
+            step_rate = float(self.step_cnt)/self.max_step
         elif self.test:
             step_rate = self.default_step_rate
 
@@ -138,7 +136,7 @@ class TensegrityEnv(MujocoEnv, utils.EzPickle):
         action_rate = 1.0 + self.action_rand*step_rate*np.random.randn(12) + self.const_ext_action
         action_converted = [(cmin+(rate*a+1.0)*(cmax-cmin)/2.0) for a, cmin, cmax, rate in zip(action, self.ctrl_min, self.ctrl_max, action_rate)] # tension force (12)
                 
-        self.sim.data.qfrc_applied[:] = self.const_ext_force + self.force_rand*step_rate*np.random.randn(36) # body linear force [N] + torque = 36 dof
+        #self.sim.data.qfrc_applied[:] = self.const_ext_force + self.force_rand*step_rate*np.random.randn(36) # body linear force [N] + torque = 36 dof
 
         # do simulation
         self.do_simulation(action_converted, self.frame_skip)
@@ -150,32 +148,15 @@ class TensegrityEnv(MujocoEnv, utils.EzPickle):
             # quat = self.sim.data.qpos[[4, 5, 6, 3]] # [x, y, z, w]
             # pole_quat = self.sim.data.body_xquat[self.model.nbody-2][[1, 2, 3, 0]]
 
-        # update current data
-        self.current_qpos = self.sim.data.qpos + self.qpos_rand*step_rate*np.random.randn(42) + self.const_ext_qpos
-        self.current_qvel = self.sim.data.qvel + self.qvel_rand*step_rate*np.random.randn(36)
-        self.current_body_xpos = self.sim.data.body_xpos.flat[3:] + self.body_xpos_rand*step_rate*np.random.randn(18)
-        # update prev data
-        self.prev_qpos.append(copy.deepcopy(self.current_qpos))
-        self.prev_qvel.append(copy.deepcopy(self.current_qvel))
-        #self.prev_body_xpos = self.prev_body_xpos.tolist()
-        self.prev_body_xpos.append(copy.deepcopy(self.current_body_xpos))
-        if len(self.prev_qpos) > self.n_prev:
-            del self.prev_qpos[0]
-        if len(self.prev_qvel) > self.n_prev:
-            del self.prev_qvel[0]
-        if len(self.prev_body_xpos) > self.n_prev:
-            del self.prev_body_xpos[0]
-
         # reward definition
-        forward_reward = 0.0
+        #forward_reward = 0.0
         ctrl_reward = 0.0
         rotate_reward = 0.0
         #rotate_speed_reward = 0.0
-        #yaw_reward = 0.0
+        yaw_reward = 0.0
         survive_reward = 0.0
-        
-        # diff of body_xpos
-        forward_value = 1.0*(
+        """
+        forward_reward = 1.0*(
                     (self.current_body_xpos[0]-self.prev_body_xpos[-1][0])
                     +(self.current_body_xpos[3]-self.prev_body_xpos[-1][3])
                     +(self.current_body_xpos[6]-self.prev_body_xpos[-1][6])
@@ -183,21 +164,12 @@ class TensegrityEnv(MujocoEnv, utils.EzPickle):
                     +(self.current_body_xpos[12]-self.prev_body_xpos[-1][12])
                     +(self.current_body_xpos[15]-self.prev_body_xpos[-1][15])
                     )
-        
         """
-        forward_reward
-        """
-        if forward_value > 0:
-            forward_reward = 1.0*forward_value**2
-        else:
-            forward_reward = -1.0*step_rate*forward_value
-
         ctrl_reward = -1.0*step_rate*np.linalg.norm(action)
         #print("action:{}".format(np.linalg.norm(action)))
         #print("xpos:{}".format(self.current_body_xpos[0]))
-        print("gyro:{}".format(self.sim.data.sensordata[1:4]))
-        print("qvel:{}".format(self.sim.data.qvel))
-        print("qacc:{}".format(self.sim.data.qacc))
+        #print("gyro:{}".format(self.sim.data.sensordata[1:4]))
+        #print("qvel:{}".format(self.sim.data.qvel[0:6]))
         #print("qvel:{}".format(np.square(self.sim.data.qvel[3:5]).sum()))
         """
         rotate_reward = 0.1*step_rate*(
@@ -210,7 +182,6 @@ class TensegrityEnv(MujocoEnv, utils.EzPickle):
         rotate_speed_reward = -1.0*step_rate*np.linalg.norm(self.sim.data.sensordata[1:4])
         """
         # size of roll/pitch
-        """
         rotate_value = (
                 np.square(self.sim.data.qvel[3:5]).sum()+
                 np.square(self.sim.data.qvel[9:11]).sum()+
@@ -219,19 +190,11 @@ class TensegrityEnv(MujocoEnv, utils.EzPickle):
                 np.square(self.sim.data.qvel[27:29]).sum()+
                 np.square(self.sim.data.qvel[33:35]).sum())
         if rotate_value < 600:
-            rotate_reward = 0.0001*rotate_value
+            rotate_reward = 1.0*step_rate*rotate_value
         else:
-            rotate_reward = -0.0001*step_rate*rotate_value
-        """
-        # value of gyro
-        rotate_value = np.square(self.sim.data.sensordata[1:4].sum())
-        if rotate_value < 100:
-            rotate_reward = 0.01*min(20, rotate_value)
-        else:
-            rotate_reward = -0.01*rotate_value
+            rotate_reward = -0.1*step_rate*rotate_value
 
         # size of yaw
-        """
         yaw_reward = -0.1*step_rate*(
                 np.square(self.sim.data.qvel[5])+
                 np.square(self.sim.data.qvel[11])+
@@ -240,12 +203,10 @@ class TensegrityEnv(MujocoEnv, utils.EzPickle):
                 np.square(self.sim.data.qvel[29])+
                 np.square(self.sim.data.qvel[35])
                 )
-        """
         print("rotate_value:{}".format(rotate_reward))
-        print("forward_value:{}".format(forward_reward))
-        print("ctrl_reward:{}".format(ctrl_reward))
+        print("yaw_value:{}".format(yaw_reward))
         survive_reward = 0.1
-        reward = ctrl_reward + forward_reward + rotate_reward + survive_reward
+        reward = ctrl_reward + rotate_reward + yaw_reward + survive_reward
 #        print("ctrl:{}".format(ctrl_reward))
 #        print("rotate:{}".format(rotate_reward))
 
@@ -264,7 +225,19 @@ class TensegrityEnv(MujocoEnv, utils.EzPickle):
             done = False
         else:
             done = not notdone
-        
+            
+        self.current_qpos = self.sim.data.qpos + self.qpos_rand*step_rate*np.random.randn(42) + self.const_ext_qpos
+        self.current_qvel = self.sim.data.qvel + self.qvel_rand*step_rate*np.random.randn(36)
+        self.prev_qpos.append(copy.deepcopy(self.current_qpos))
+        self.prev_qvel.append(copy.deepcopy(self.current_qvel))
+        #self.prev_body_xpos = self.prev_body_xpos.tolist()
+        self.prev_body_xpos.append(copy.deepcopy(self.current_body_xpos))
+        if len(self.prev_qpos) > self.n_prev:
+            del self.prev_qpos[0]
+        if len(self.prev_qvel) > self.n_prev:
+            del self.prev_qvel[0]
+        if len(self.prev_body_xpos) > self.n_prev:
+            del self.prev_body_xpos[0]
         obs = self._get_obs()
         self.prev_action.append(copy.deepcopy(action))
         if len(self.prev_action) > self.n_prev:
@@ -293,7 +266,6 @@ class TensegrityEnv(MujocoEnv, utils.EzPickle):
     def _get_obs(self):
         if self.max_step:
             step_rate = float(self.step_cnt)/self.max_step
-            #step_rate = self.default_step_rate
         elif self.test:
             step_rate = self.default_step_rate
         return np.concatenate(
@@ -317,7 +289,6 @@ class TensegrityEnv(MujocoEnv, utils.EzPickle):
 
         if self.max_step:
             step_rate = float(self.step_cnt)/self.max_step
-            #step_rate = self.default_step_rate
         elif self.test:
             step_rate = self.default_step_rate
 

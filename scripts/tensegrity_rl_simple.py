@@ -15,7 +15,7 @@ from stable_baselines3.common.utils import set_random_seed, get_device, get_late
 from stable_baselines3.common.callbacks import CheckpointCallback
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
-from tensegrity_sim_UpdReward import TensegrityEnv
+from tensegrity_sim_simple import TensegrityEnv
 
 ## variable from command line
 def parser():
@@ -58,7 +58,6 @@ def main():
     root_dir = os.path.dirname(os.path.abspath(__file__))
     model = PPO("MlpPolicy",
             env,
-            learning_rate = 0.00001,
             policy_kwargs = dict(
                 activation_fn=torch.nn.Tanh,
                 net_arch=dict(pi=[256, 128], vf=[256, 128]),
@@ -83,8 +82,8 @@ def main():
                 tlog.Reload()
                 rew_data = pd.DataFrame(tlog.Scalars('rollout/ep_rew_mean'))
                 model_list = sorted(glob.glob(root_dir + "/../saved/Policy_{0}/*".format(args.trial)), key=lambda x: int(re.findall(r'\d+', x)[-1]))
-                n_all_iter = len(rew_data.iloc[args.save_interval-1::args.save_interval])
-                sorted_rew_data = (rew_data.iloc[args.save_interval-1::args.save_interval])[int(args.best_rate*n_all_iter):].sort_values(by="value")
+                n_all_iter = len(rew_data.iloc[args.save_interval-2::args.save_interval])
+                sorted_rew_data = (rew_data.iloc[args.save_interval-2::args.save_interval])[int(args.best_rate*n_all_iter):].sort_values(by="value")
                 print(sorted_rew_data)
                 load_iter = sorted_rew_data.tail(1).index[0]
                 load_step = sorted_rew_data.loc[load_iter, 'step']
