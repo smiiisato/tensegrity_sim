@@ -1,12 +1,12 @@
 <mujoco model="tensegrity">
   <option timestep="0.002"/>
   <default>
-    <site size="0.005" rgba="1 1 1 1"/>
+    <site size="0.02" rgba="1 1 1 1"/>
     <default class="tendon_actuator">
       <general ctrllimited="true" ctrlrange="-6.0 0" dyntype="filter" dynprm="0.02"/> <!-- for real2sim -->
     </default>
     <default class="tendon_spatial">
-      <tendon damping="5" stiffness="50" frictionloss="0.5"/>
+      <tendon damping="5" stiffness="70" frictionloss="0.5"/>
     </default>
   </default>
   <worldbody>
@@ -193,9 +193,19 @@
   </actuator>
 
   <sensor>
-    <tendonpos name="link4t_5b" tendon="link4t_5b"/>
-    <gyro name="gyro" site="imu"/>
-    <accelerometer name="accelerometer" site="imu"/>
+      <!--touch sensor-->
+    <touch name="touch_1t" site="link1_top"/>
+    <touch name="touch_2t" site="link2_top"/>
+    <touch name="touch_3t" site="link3_top"/>
+    <touch name="touch_4t" site="link4_top"/>
+    <touch name="touch_5t" site="link5_top"/>
+    <touch name="touch_6t" site="link6_top"/>
+    <touch name="touch_1b" site="link1_bottom"/>
+    <touch name="touch_2b" site="link2_bottom"/>
+    <touch name="touch_3b" site="link3_bottom"/>
+    <touch name="touch_4b" site="link4_bottom"/>
+    <touch name="touch_5b" site="link5_bottom"/>
+    <touch name="touch_6b" site="link6_bottom"/>
   </sensor>
 
 </mujoco>

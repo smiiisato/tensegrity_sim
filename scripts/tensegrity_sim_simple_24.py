@@ -33,7 +33,7 @@ class TensegrityEnv(MujocoEnv, utils.EzPickle):
 
         # control range
         self.ctrl_max = [0]*12
-        self.ctrl_min = [-6.0]*12
+        self.ctrl_min = [-4.0]*12
 
         self.n_prev = 6
         self.max_episode = 10000
@@ -123,7 +123,7 @@ class TensegrityEnv(MujocoEnv, utils.EzPickle):
         ctrl_min = np.array(self.ctrl_min)
         action_rate = (ctrl_min - ctrl_max)*np.random.rand(12)
         #action_converted = [(cmin+(rate*a+1.0)*(cmax-cmin)/2.0) for a, cmin, cmax, rate in zip(action, self.ctrl_min, self.ctrl_max, action_rate)] # tension force (12)
-        #print("action:{}".format(action_rate))
+        print("action:{}".format(action_rate))
 
         # do simulation
         self.do_simulation(action_rate, self.frame_skip)
@@ -140,7 +140,7 @@ class TensegrityEnv(MujocoEnv, utils.EzPickle):
         #ctrl_reward = -0.01*step_rate*np.linalg.norm(action)
         reward = forward_reward
         #print("ctrl:{}".format(ctrl_reward))
-        print("forward:{}".format(forward_reward))
+        #print("forward:{}".format(forward_reward))
 
         if self.test and self.ros:
             self.debug_msg.data = np.concatenate([np.array(action_converted), pose, vel, self.sim.data.qvel])
@@ -208,7 +208,7 @@ class TensegrityEnv(MujocoEnv, utils.EzPickle):
         )
 
     def _set_action_space(self):
-        low = np.asarray([-6.0]*12, dtype=np.float32)
+        low = np.asarray([-4.0]*12, dtype=np.float32)
         high = np.asarray([0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0], dtype=np.float32)
         self.action_space = spaces.Box(low=low, high=high, dtype=np.float32)

@@ -20,16 +20,13 @@ class TensegrityEnv(MujocoEnv, utils.EzPickle):
             self.debug_pub = rospy.Publisher("tensegrity_env/debug", Float32MultiArray, queue_size=10)
 
         self.rospack = RosPack()
-        model_path = self.rospack.get_path("tensegrity_sim") + "/model/scene_simple.xml"
+        model_path = self.rospack.get_path("tensegrity_sim") + "/model/scene_touch.xml"
         # 5 : frame skip
         MujocoEnv.__init__(self, model_path, 5)
 
         utils.EzPickle.__init__(self)
 
     def set_param(self):
-
-        # sensor id
-        self.gyro_id = self.model.sensor_name2id("gyro")
 
         # control range
         self.ctrl_max = [0]*12
@@ -76,8 +73,10 @@ class TensegrityEnv(MujocoEnv, utils.EzPickle):
         self.current_qvel = None # not used
         #self.current_bvel = None
         self.current_get_body_xpos = None
+        self.current_touch = None
         self.prev_qpos = None
         self.prev_qvel = None # not used
+        self.prev_touch = None # not used
         #self.prev_bvel = None
         self.prev_get_body_xpos = None
         self.prev_action = None
@@ -105,6 +104,9 @@ class TensegrityEnv(MujocoEnv, utils.EzPickle):
         if self.current_get_body_xpos is None:
             self.current_get_body_xpos = self.sim.data.get_body_xpos("link1")
 
+        if self.current_touch is None:
+            self.current_touch = self.sim.data.sensordata
+
         # save previous data
         if self.prev_action is None:
             self.prev_action = [copy.deepcopy(action) for i in range(self.n_prev)]
@@ -118,6 +120,8 @@ class TensegrityEnv(MujocoEnv, utils.EzPickle):
         if self.prev_get_body_xpos is None:
             self.prev_get_body_xpos = [copy.deepcopy(self.current_get_body_xpos) for i in range(self.n_prev)]
 
+        if self.prev_touch is None:
+            self.prev_touch = [copy.deepcopy(self.current_touch) for i in range(self.n_prev)]
         #action_rate = 1.0 + self.action_rand*step_rate*np.random.randn(12) + self.const_ext_action
         ctrl_max = np.array(self.ctrl_max)
         ctrl_min = np.array(self.ctrl_min)
@@ -131,16 +135,37 @@ class TensegrityEnv(MujocoEnv, utils.EzPickle):
         # reward definition
         forward_reward = 0.0
         #ctrl_reward = 0.0
+        touch_reward = 0.0
        
         # global frame position
         forward_reward = 100.0*(
                 self.sim.data.get_body_xpos("link1")[0] - self.prev_get_body_xpos[0][0]
                     )
+        if self.sim.data.sensordata is not None and self.prev_touch[0] is not None: 
+            touch_reward = 0.01*(
+                    abs(self.sim.data.sensordata[0]-self.prev_touch[0][0])+
+                    abs(self.sim.data.sensordata[1]-self.prev_touch[0][1])+
+                    abs(self.sim.data.sensordata[2]-self.prev_touch[0][2])+
+                    abs(self.sim.data.sensordata[3]-self.prev_touch[0][3])+
+                    abs(self.sim.data.sensordata[4]-self.prev_touch[0][4])+
+                    abs(self.sim.data.sensordata[5]-self.prev_touch[0][5])+
+                    abs(self.sim.data.sensordata[6]-self.prev_touch[0][6])+
+                    abs(self.sim.data.sensordata[7]-self.prev_touch[0][7])+
+                    abs(self.sim.data.sensordata[8]-self.prev_touch[0][8])+
+                    abs(self.sim.data.sensordata[9]-self.prev_touch[0][9])+
+                    abs(self.sim.data.sensordata[10]-self.prev_touch[0][10])+
+                    abs(self.sim.data.sensordata[11]-self.prev_touch[0][11])
+                    )
         
         #ctrl_reward = -0.01*step_rate*np.linalg.norm(action)
-        reward = forward_reward
+        reward = forward_reward + touch_reward
         #print("ctrl:{}".format(ctrl_reward))
         print("forward:{}".format(forward_reward))
+        #print("touch:{}".format(self.sim.data.sensordata[self.model.sensor_name2id("touch_1t")]))
+        print("touch:{}".format(touch_reward))
+        #print("prev:{}".format(self.prev_touch[0]))
+        #print("current:{}".format(self.sim.data.sensordata))
+
 
         if self.test and self.ros:
             self.debug_msg.data = np.concatenate([np.array(action_converted), pose, vel, self.sim.data.qvel])
@@ -160,15 +185,20 @@ class TensegrityEnv(MujocoEnv, utils.EzPickle):
             
         self.current_qpos = self.sim.data.qpos
         self.current_qvel = self.sim.data.qvel 
+        self.current_get_body_xpos = self.sim.data.get_body_xpos("link1") 
+        self.current_touch = self.sim.data.sensordata 
         self.prev_qpos.append(copy.deepcopy(self.current_qpos))
         self.prev_qvel.append(copy.deepcopy(self.current_qvel))
         self.prev_get_body_xpos.append(copy.deepcopy(self.current_get_body_xpos))
+        self.prev_touch.append(copy.deepcopy(self.current_touch))
         if len(self.prev_qpos) > self.n_prev:
             del self.prev_qpos[0]
         if len(self.prev_qvel) > self.n_prev:
             del self.prev_qvel[0]
         if len(self.prev_get_body_xpos) > self.n_prev:
             del self.prev_get_body_xpos[0]
+        if len(self.prev_touch) > self.n_prev:
+            del self.prev_touch[0]
         obs = self._get_obs()
         self.prev_action.append(copy.deepcopy(action))
         if len(self.prev_action) > self.n_prev:
@@ -177,9 +207,13 @@ class TensegrityEnv(MujocoEnv, utils.EzPickle):
             self.episode_cnt = 0
             self.current_qpos = None
             self.current_qvel = None
+            self.current_get_body_xpos = None
+            self.current_touch = None
             self.prev_action = None
             self.prev_qpos = None
             self.prev_qvel = None
+            self.prev_get_body_xpos = None
+            self.prev_touch = None
             self.const_ext_qpos = self.const_qpos_rand*step_rate*np.random.randn(42)
             self.const_ext_force = self.const_force_rand*step_rate*np.random.randn(36)
             self.const_ext_action = self.const_action_rand*step_rate*np.random.randn(12)
@@ -189,6 +223,7 @@ class TensegrityEnv(MujocoEnv, utils.EzPickle):
             done,
             dict(
                 forward_reward = forward_reward,
+                touch_reward = touch_reward,
                 ),
             )
 
@@ -239,9 +274,11 @@ class TensegrityEnv(MujocoEnv, utils.EzPickle):
             self.current_qpos = self.sim.data.qpos.flat[:]
             self.current_qvel = self.sim.data.qvel.flat[:]
             self.current_get_body_xpos = self.sim.data.get_body_xpos("link1")
+            self.current_get_touch = self.sim.data.sensordata[:]
             self.prev_action = [np.zeros(12) for i in range(self.n_prev)]
             self.prev_qpos = [self.current_qpos for i in range(self.n_prev)]
             self.prev_qvel = [self.current_qvel for i in range(self.n_prev)]
+            self.prev_touch = [self.current_touch for i in range(self.n_prev)]
             self.prev_get_body_xpos = [self.current_get_body_xpos for i in range(self.n_prev)]
 
         return self._get_obs()
