@@ -15,7 +15,7 @@ from stable_baselines3.common.utils import set_random_seed, get_device, get_late
 from stable_baselines3.common.callbacks import CheckpointCallback
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
-from tensegrity_sim_24act import TensegrityEnv
+from tensegrity_sim_abs import TensegrityEnv
 
 ## variable from command line
 def parser():
