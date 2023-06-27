@@ -126,7 +126,7 @@ class TensegrityEnv(MujocoEnv, utils.EzPickle):
         #print("action:{}".format(action_rate))
 
         # do simulation
-        self.do_simulation(action_rate, self.frame_skip)
+        self.do_simulation(action, self.frame_skip)
             
         # reward definition
         forward_reward = 0.0

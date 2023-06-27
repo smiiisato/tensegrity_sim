@@ -1,5 +1,5 @@
 <mujoco model="tensegrity">
-  <option timestep="0.002"/>
+  <option timestep="0.002" collision="predefined"/>
   <default>
     <site size="0.005" rgba="1 1 1 1"/>
     <default class="tendon_actuator">
