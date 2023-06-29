@@ -127,7 +127,7 @@ class TensegrityEnv(MujocoEnv, utils.EzPickle):
 
         #action_rate = 1.0 + self.action_rand*step_rate*np.random.randn(12) + self.const_ext_action
         #action_converted = [(cmin+(rate*a+1.0)*(cmax-cmin)/2.0) for a, cmin, cmax, rate in zip(action, self.ctrl_min, self.ctrl_max, action_rate)] # tension force (12)
-        #print("action:{}".format(action))
+        print("action:{}".format(action))
 
         # do simulation
         self.do_simulation(action, self.frame_skip)
@@ -142,7 +142,7 @@ class TensegrityEnv(MujocoEnv, utils.EzPickle):
                     )
         
         ctrl_reward = -0.005*step_rate*np.linalg.norm(action)
-        reward = forward_reward
+        reward = forward_reward + ctrl_reward
         #print("ctrl:{}".format(ctrl_reward))
         #print("forward:{}".format(forward_reward))
         print(sum(self.current_get_body_xpos[::3])/6)

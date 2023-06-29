@@ -22,7 +22,7 @@ class TensegrityEnv(MujocoEnv, utils.EzPickle):
         self.rospack = RosPack()
         model_path = self.rospack.get_path("tensegrity_sim") + "/model/scene_24act.xml"
         # 5 : frame skip
-        MujocoEnv.__init__(self, model_path, 5)
+        MujocoEnv.__init__(self, model_path, 100)
 
         utils.EzPickle.__init__(self)
 
@@ -35,33 +35,12 @@ class TensegrityEnv(MujocoEnv, utils.EzPickle):
         self.ctrl_max = [0]*24
         self.ctrl_min = [-6.0]*24
 
-        self.n_prev = 6
+        self.n_prev = 2
+        self.xpos_length = 20
         self.max_episode = 3000
         #self.max_episode = 1000
 
         # random noise
-        self.qpos_rand = np.array([0.01]*42, dtype=np.float32) # 7dof * 6 links = 42
-        self.const_qpos_rand = np.array([0.01]*42, dtype=np.float32) # 7dof * 6 links = 42
-        self.qvel_rand = np.array([
-            0.01, 0.01, 0.01, 0.03, 0.03, 0.01,
-            0.01, 0.01, 0.01, 0.03, 0.03, 0.01,
-            0.01, 0.01, 0.01, 0.03, 0.03, 0.01,
-            0.01, 0.01, 0.01, 0.03, 0.03, 0.01,
-            0.01, 0.01, 0.01, 0.03, 0.03, 0.01,
-            0.01, 0.01, 0.01, 0.03, 0.03, 0.01,
-            ], dtype=np.float32) # velocity of quaternion (3) + joint velocities (3) = (6)
-        self.force_rand = np.array([0.003]*36, dtype=np.float32)
-        self.const_force_rand = np.array([0.003]*36, dtype=np.float32)
-        #self.torque_rand = np.array([0.3, 0.3, 0.3], dtype=np.float32)
-        #self.const_torque_rand = np.array([0.3, 0.3, 0.3], dtype=np.float32)
-        self.action_rand = np.array([0.05, 0.05, 0.05, 0.05,
-            0.05, 0.05, 0.05, 0.05,
-            0.05, 0.05, 0.05, 0.05], dtype=np.float32)
-        self.const_action_rand = np.array([0.05, 0.05, 0.05, 0.05,
-            0.05, 0.05, 0.05, 0.05,
-            0.05, 0.05, 0.05, 0.05], dtype=np.float32)
-        self.get_body_xpos_rand = np.array([0.01]*6)
-        self.const_get_body_xpos_rand = np.array([0.01]*6)
         # data.qpos = 7 dof * 6 links = 42
         # data.qvel = 6 dof * 6 links = 36
 
@@ -69,9 +48,6 @@ class TensegrityEnv(MujocoEnv, utils.EzPickle):
             self.default_step_rate = 0.5
 
         # variable for rl
-        self.const_ext_qpos = np.zeros(42)
-        self.const_ext_force = np.zeros(36)
-        self.const_ext_action = np.zeros(24)
         self.current_qpos = None
         self.current_qvel = None # not used
         #self.current_bvel = None
@@ -124,7 +100,7 @@ class TensegrityEnv(MujocoEnv, utils.EzPickle):
             self.prev_qvel = [copy.deepcopy(self.current_qvel) for i in range(self.n_prev)]
 
         if self.prev_get_body_xpos is None:
-            self.prev_get_body_xpos = [copy.deepcopy(self.current_get_body_xpos) for i in range(self.n_prev*3)]
+            self.prev_get_body_xpos = [copy.deepcopy(self.current_get_body_xpos) for i in range(self.xpos_length)]
 
         #action_rate = 1.0 + self.action_rand*step_rate*np.random.randn(12) + self.const_ext_action
         #action_converted = [(cmin+(rate*a+1.0)*(cmax-cmin)/2.0) for a, cmin, cmax, rate in zip(action, self.ctrl_min, self.ctrl_max, action_rate)] # tension force (12)
@@ -190,7 +166,7 @@ class TensegrityEnv(MujocoEnv, utils.EzPickle):
             del self.prev_qpos[0]
         if len(self.prev_qvel) > self.n_prev:
             del self.prev_qvel[0]
-        if len(self.prev_get_body_xpos) > self.n_prev*3:
+        if len(self.prev_get_body_xpos) > self.xpos_length:
             del self.prev_get_body_xpos[0]
         obs = self._get_obs()
         self.prev_action.append(copy.deepcopy(action))
@@ -203,9 +179,6 @@ class TensegrityEnv(MujocoEnv, utils.EzPickle):
             self.prev_action = None
             self.prev_qpos = None
             self.prev_qvel = None
-            self.const_ext_qpos = self.const_qpos_rand*step_rate*np.random.randn(42)
-            self.const_ext_force = self.const_force_rand*step_rate*np.random.randn(36)
-            self.const_ext_action = self.const_action_rand*step_rate*np.random.randn(12)
         return (
             obs,
             reward,
@@ -223,8 +196,8 @@ class TensegrityEnv(MujocoEnv, utils.EzPickle):
             step_rate = self.default_step_rate
         return np.concatenate(
             [
-                np.concatenate(self.prev_qpos), # prev base quat + joint angles
-                np.concatenate(self.prev_qvel), # prev base quat vel + joint vels
+                #np.concatenate(self.prev_qpos), # prev base quat + joint angles
+                #np.concatenate(self.prev_qvel), # prev base quat vel + joint vels
                 np.concatenate(self.prev_action), # prev action
                 np.concatenate(self.prev_get_body_xpos), 
             ]
@@ -272,7 +245,7 @@ class TensegrityEnv(MujocoEnv, utils.EzPickle):
             self.prev_action = [np.zeros(24) for i in range(self.n_prev)]
             self.prev_qpos = [self.current_qpos for i in range(self.n_prev)]
             self.prev_qvel = [self.current_qvel for i in range(self.n_prev)]
-            self.prev_get_body_xpos = [self.current_get_body_xpos for i in range(self.n_prev*3)]
+            self.prev_get_body_xpos = [self.current_get_body_xpos for i in range(self.xpos_length)]
 
         return self._get_obs()
 
